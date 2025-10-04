@@ -15,7 +15,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (fireAuthInstance.currentUser != null) {
-        context.go('/home');
+        context.go('/login');
       } else {
         context.go('/login');
       }

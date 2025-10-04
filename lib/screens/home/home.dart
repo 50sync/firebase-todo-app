@@ -27,219 +27,218 @@ class _HomeState extends State<Home> {
   late List<QueryDocumentSnapshot> unCompletedTasks;
 
   @override
-  void initState() {
-    super.initState();
-    // Load tasks when the screen initializes
-    context.read<TaskBloc>().add(LoadTasks());
-  }
-
-  @override
   Widget build(BuildContext context) {
     log(fireAuthInstance.currentUser!.uid.toString());
-    return Scaffold(
-      backgroundColor: Color(0xFFf1f5f9),
-      body: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                DecoratedAppBar(height: 0.3.sh),
-                Positioned.fill(
-                  child: SafeArea(
-                    child: BlocConsumer<TaskBloc, TaskState>(
-                      listener: (context, state) {
-                        if (state is TasksLoaded) {
-                          final docs = state.docs;
+    return BlocProvider(
+      create: (context) =>
+          TaskBloc(firestore: FirebaseFirestore.instance)..add(LoadTasks()),
+      child: Scaffold(
+        backgroundColor: Color(0xFFf1f5f9),
+        body: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  DecoratedAppBar(height: 0.3.sh),
+                  Positioned.fill(
+                    child: SafeArea(
+                      child: BlocConsumer<TaskBloc, TaskState>(
+                        listener: (context, state) {
+                          if (state is TasksLoaded) {
+                            final docs = state.docs;
 
-                          unCompletedTasks = docs
-                              .where((doc) => doc['isDone'] == false)
-                              .toList();
-                          completedTasks = docs
-                              .where((doc) => doc['isDone'] == true)
-                              .toList();
-
-                          if (completedTasks.length == docs.length) {
                             setState(() {
-                              _isCompletedTasksShown = true;
+                              unCompletedTasks = docs
+                                  .where((doc) => doc['isDone'] == false)
+                                  .toList();
+                              completedTasks = docs
+                                  .where((doc) => doc['isDone'] == true)
+                                  .toList();
+                              if (completedTasks.length == docs.length) {
+                                _isCompletedTasksShown = true;
+                              }
                             });
                           }
-                        }
-                      },
-                      builder: (context, state) {
-                        if (state is TaskInitial || state is TaskLoading) {
-                          return Center(child: CircularProgressIndicator());
-                        }
+                        },
+                        builder: (context, state) {
+                          if (state is TaskInitial || state is TaskLoading) {
+                            return Center(child: CircularProgressIndicator());
+                          }
 
-                        if (state is TaskError) {
-                          return Center(child: Text('Error: ${state.message}'));
-                        }
+                          if (state is TaskError) {
+                            return Center(
+                              child: Text('Error: ${state.message}'),
+                            );
+                          }
 
-                        if (state is TasksLoaded) {
-                          final docs = state.docs;
+                          if (state is TasksLoaded) {
+                            final docs = state.docs;
 
-                          return SingleChildScrollView(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Column(
-                                    children: [
-                                      20.verticalSpace,
-
-                                      Text(
-                                        _currentDate,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      20.verticalSpace,
-                                      Text(
-                                        'My Todo List',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 32.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (docs.isEmpty)
-                                  SizedBox(
-                                    height: 0.7.sh,
-                                    child: Center(
-                                      child: Text(
-                                        'No tasks yet',
-                                        style: TextStyle(
-                                          fontSize: 24.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  20.verticalSpace,
-                                // 🟢 To Do tasks
-                                if (unCompletedTasks.isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(15),
+                            return SingleChildScrollView(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Align(
+                                    alignment: Alignment.topCenter,
                                     child: Column(
                                       children: [
-                                        ...List.generate(
-                                          unCompletedTasks.length,
-                                          (index) => Column(
-                                            children: [
-                                              _buildTaskItem(
-                                                unCompletedTasks[index],
-                                                index,
-                                              ),
-                                              if (index !=
-                                                  unCompletedTasks.length - 1)
-                                                Divider(
-                                                  height: 0,
-                                                  color: Colors.grey.withValues(
-                                                    alpha: 0.5,
-                                                  ),
-                                                ),
-                                            ],
+                                        20.verticalSpace,
+
+                                        Text(
+                                          _currentDate,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18.sp,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        20.verticalSpace,
+                                        Text(
+                                          'My Todo List',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 32.sp,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-
-                                // 🟣 Completed tasks
-                                if (completedTasks.isNotEmpty) ...[
-                                  if (completedTasks.length != docs.length)
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _isCompletedTasksShown =
-                                              !_isCompletedTasksShown;
-                                        });
-                                      },
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            _isCompletedTasksShown
-                                                ? Icons.keyboard_arrow_down
-                                                : Icons.keyboard_arrow_right,
+                                  if (docs.isEmpty)
+                                    SizedBox(
+                                      height: 0.7.sh,
+                                      child: Center(
+                                        child: Text(
+                                          'No tasks yet',
+                                          style: TextStyle(
+                                            fontSize: 24.sp,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 16.0,
-                                            ),
-                                            child: Text(
-                                              'Completed',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18.sp,
-                                              ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    20.verticalSpace,
+                                  // 🟢 To Do tasks
+                                  if (unCompletedTasks.isNotEmpty)
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(15),
+                                      child: Column(
+                                        children: [
+                                          ...List.generate(
+                                            unCompletedTasks.length,
+                                            (index) => Column(
+                                              children: [
+                                                _buildTaskItem(
+                                                  unCompletedTasks[index],
+                                                  index,
+                                                ),
+                                                if (index !=
+                                                    unCompletedTasks.length - 1)
+                                                  Divider(
+                                                    height: 0,
+                                                    color: Colors.grey
+                                                        .withValues(alpha: 0.5),
+                                                  ),
+                                              ],
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  if (_isCompletedTasksShown)
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            15,
-                                          ),
-                                          child: Column(
-                                            children: List.generate(
-                                              completedTasks.length,
-                                              (index) => Column(
-                                                children: [
-                                                  _buildTaskItem(
-                                                    completedTasks[index],
-                                                    index,
+
+                                  // 🟣 Completed tasks
+                                  if (completedTasks.isNotEmpty) ...[
+                                    if (completedTasks.length != docs.length)
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isCompletedTasksShown =
+                                                !_isCompletedTasksShown;
+                                          });
+                                        },
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              _isCompletedTasksShown
+                                                  ? Icons.keyboard_arrow_down
+                                                  : Icons.keyboard_arrow_right,
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 16.0,
                                                   ),
-                                                  if (index !=
-                                                      completedTasks.length - 1)
-                                                    Divider(
-                                                      height: 0,
-                                                      color: Colors.grey
-                                                          .withValues(
-                                                            alpha: 0.5,
-                                                          ),
+                                              child: Text(
+                                                'Completed',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18.sp,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (_isCompletedTasksShown)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              15,
+                                            ),
+                                            child: Column(
+                                              children: List.generate(
+                                                completedTasks.length,
+                                                (index) => Column(
+                                                  children: [
+                                                    _buildTaskItem(
+                                                      completedTasks[index],
+                                                      index,
                                                     ),
-                                                ],
+                                                    if (index !=
+                                                        completedTasks.length -
+                                                            1)
+                                                      Divider(
+                                                        height: 0,
+                                                        color: Colors.grey
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            ),
+                                                      ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                          );
-                        }
+                              ),
+                            );
+                          }
 
-                        return Center(child: Text('Unknown state'));
-                      },
+                          return Center(child: Text('Unknown state'));
+                        },
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CustomButton(
-              text: 'Add New Task',
-              onTap: () => context.push('/addTask'),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomButton(
+                text: 'Add New Task',
+                onTap: () => context.push('/addTask'),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -250,10 +249,10 @@ class _HomeState extends State<Home> {
       return category.icon.codePoint == todo['category'];
     });
     return ValueListenableBuilder<bool>(
+      key: UniqueKey(),
       valueListenable: isDoneNotifier,
       builder: (context, value, child) {
         return Material(
-          key: UniqueKey(),
           color: Colors.white,
           child: InkWell(
             onTap: () {
@@ -336,14 +335,16 @@ class _HomeState extends State<Home> {
                           // Update local state immediately for animation
                           isDoneNotifier.value = newValue;
                           // Update database through BLoC
-                          if (context.mounted) {
-                            context.read<TaskBloc>().add(
-                              ToggleTaskCompletion(
-                                taskId: todo.id,
-                                isCompleted: newValue,
-                              ),
-                            );
-                          }
+                          Future.delayed(Duration(milliseconds: 300), () {
+                            if (context.mounted) {
+                              context.read<TaskBloc>().add(
+                                ToggleTaskCompletion(
+                                  taskId: todo.id,
+                                  isCompleted: newValue,
+                                ),
+                              );
+                            }
+                          });
                         }
                       },
                     ),

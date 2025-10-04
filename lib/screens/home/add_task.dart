@@ -498,7 +498,9 @@ class _AddTaskState extends State<AddTask> {
                       Expanded(
                         child: CustomButton(
                           text: 'Cancel',
-                          onTap: () => context.pop(),
+                          onTap: () {
+                            context.pop();
+                          },
                         ),
                       ),
                       5.horizontalSpace,

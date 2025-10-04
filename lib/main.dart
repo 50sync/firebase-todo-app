@@ -18,13 +18,10 @@ class Tasking extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => TaskBloc(firestore: FirebaseFirestore.instance),
-      child: ScreenUtilInit(
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          routerConfig: router,
-        ),
+    return ScreenUtilInit(
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        routerConfig: router,
       ),
     );
   }
