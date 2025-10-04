@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:tasking/core/constants/constants.dart';
 import 'package:tasking/core/models/category_model.dart';
+import 'package:tasking/core/widgets/custom_button.dart';
 import 'package:tasking/core/widgets/decorated_app_bar.dart';
 
 class AddTask extends StatefulWidget {
@@ -18,11 +19,12 @@ class AddTask extends StatefulWidget {
 
 class _AddTaskState extends State<AddTask> {
   bool? isDone;
-  int? selectedIndex;
   DateTime? _selectedDate;
   String? _formattedDate;
   String? _formattedTime;
   TimeOfDay? _selectedTime;
+  CategoryModel? selectedCategory;
+  IconData? selectedIcon;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _taskTitleController = TextEditingController();
   final TextEditingController _noteTitleController = TextEditingController();
@@ -35,12 +37,14 @@ class _AddTaskState extends State<AddTask> {
         _taskTitleController.text = widget.todo?['title'];
       }
       if (widget.todo?['category'] != null) {
-        selectedIndex = categories.indexWhere((category) {
-          return category.type == widget.todo?['category'];
+        selectedCategory = categories.firstWhere((category) {
+          return category.icon.codePoint == widget.todo?['category'];
         });
+        selectedIcon = selectedCategory?.icon;
       }
       if (widget.todo?['dueDate'] != null) {
-        _selectedDate = DateTime.parse(widget.todo?['dueDate']);
+        final dateFormat = DateFormat('yyyy-M-d');
+        _selectedDate = dateFormat.parse(widget.todo?['dueDate']);
         _formattedDate = widget.todo?['dueDate'];
       }
       if (widget.todo?['dueTime'] != null) {
@@ -51,6 +55,9 @@ class _AddTaskState extends State<AddTask> {
       if (widget.todo?['notes'] != null) {
         _noteTitleController.text = widget.todo?['notes'];
       }
+    } else {
+      selectedCategory = categories[0];
+      selectedIcon = categories[0].icon;
     }
     super.initState();
   }
@@ -61,7 +68,7 @@ class _AddTaskState extends State<AddTask> {
         'title': _taskTitleController.text.trim(),
         'dueDate': _formattedDate?.trim(),
         'dueTime': _formattedTime?.trim(),
-        'category': categories[selectedIndex!].type.trim(),
+        'category': selectedIcon?.codePoint,
         'notes': _noteTitleController.text.trim(),
       });
     } else {
@@ -70,7 +77,7 @@ class _AddTaskState extends State<AddTask> {
         'title': _taskTitleController.text.trim(),
         'dueDate': _formattedDate?.trim(),
         'dueTime': _formattedTime?.trim(),
-        'category': categories[selectedIndex!].type.trim(),
+        'category': selectedIcon?.codePoint,
         'notes': _noteTitleController.text.trim(),
       });
     }
@@ -122,10 +129,13 @@ class _AddTaskState extends State<AddTask> {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           onPressed: () {
-                            tasksCollection.doc(widget.todo?.id).delete();
-                            context.pop();
+                            showRemoveTaskConfirmation();
                           },
-                          icon: Icon(Icons.delete, color: Colors.red, size: 40),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 40,
+                          ),
                         ),
                       ),
                   ],
@@ -164,6 +174,7 @@ class _AddTaskState extends State<AddTask> {
                                 Transform.scale(
                                   scale: 1.5,
                                   child: Checkbox(
+                                    side: const BorderSide(color: Colors.grey),
                                     value: isDone ?? false,
                                     onChanged: (value) {
                                       tasksCollection
@@ -180,46 +191,38 @@ class _AddTaskState extends State<AddTask> {
                         ],
                       ),
                       Row(
-                        spacing: 5,
                         children: [
-                          Text(
-                            'Category',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-
-                          ...List.generate(categories.length, (index) {
-                            final isSelected =
-                                selectedIndex == index; // 🟢 هنا بيشيك
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedIndex = index;
-                                });
-                                log(selectedIndex.toString());
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: isSelected == false
-                                        ? Colors.white
-                                        : Color(0xFF4a3880),
-                                    width: 4,
-                                  ),
-                                  borderRadius: BorderRadius.circular(100),
-                                  color: categories[index].color,
+                          GestureDetector(
+                            onTap: () async {
+                              CategoryModel? result = await showCategoryPicker(
+                                context,
+                              );
+                              if (result != null) {
+                                selectedCategory = result;
+                                selectedIcon = result.icon;
+                                setState(() {});
+                              }
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 4,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Icon(
-                                    categories[index].icon,
-                                    size: 35,
-                                    color: Color(0xFF4a3780),
-                                  ),
+                                borderRadius: BorderRadius.circular(100),
+                                color: selectedCategory?.color,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Icon(
+                                  selectedIcon,
+                                  size: 35,
+                                  color: Color(0xFF4a3880),
                                 ),
                               ),
-                            );
-                          }),
+                            ),
+                          ),
                         ],
                       ),
                       Row(
@@ -400,32 +403,17 @@ class _AddTaskState extends State<AddTask> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: TextButton(
-              style: TextButton.styleFrom(backgroundColor: Color(0xFF4a3780)),
-              onPressed: () {
+            child: CustomButton(
+              text: 'Save',
+              onTap: () {
                 if (_formKey.currentState!.validate()) {
-                  if (selectedIndex == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Category Required')),
-                    );
-                  } else {
-                    _addTask();
-                    context.pop();
-                  }
+                  _addTask();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Task saved successfully!')),
+                  );
+                  context.pop();
                 }
               },
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    'Save',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -433,11 +421,113 @@ class _AddTaskState extends State<AddTask> {
     );
   }
 
+  Future<CategoryModel?> showCategoryPicker(BuildContext context) async {
+    return showModalBottomSheet<CategoryModel>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  itemCount: categories.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                  ),
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(context, category),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: category.color,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          category.icon,
+                          color: Colors.black87,
+                          size: 36,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void showRemoveTaskConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          constraints: BoxConstraints(maxHeight: 0.25.sh),
+          content: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  child: Icon(Icons.close),
+                  onTap: () => context.pop(),
+                ),
+              ),
+              Center(
+                child: Text(
+                  'Do you want to delete this task ?',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CustomButton(
+                          text: 'Cancel',
+                          onTap: () => context.pop(),
+                        ),
+                      ),
+                      5.horizontalSpace,
+                      Expanded(
+                        child: CustomButton(
+                          text: 'Yes',
+                          color: Colors.red,
+                          onTap: () {
+                            tasksCollection.doc(widget.todo?.id).delete();
+                            context.go('/home');
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   TextFormField _buildNewTaskTextField(TextEditingController controller) {
     return TextFormField(
       validator: (value) {
         if (value!.isEmpty) {
-          return 'Required Fiedl';
+          return 'Required Field';
         }
         return null;
       },

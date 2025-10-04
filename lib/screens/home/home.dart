@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:tasking/core/bloc/bloc/task_bloc.dart';
 import 'package:tasking/core/constants/constants.dart';
+import 'package:tasking/core/widgets/custom_button.dart';
 import 'package:tasking/core/widgets/decorated_app_bar.dart';
 
 class Home extends StatefulWidget {
@@ -76,18 +77,6 @@ class _HomeState extends State<Home> {
                         if (state is TasksLoaded) {
                           final docs = state.docs;
 
-                          if (docs.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'No tasks yet',
-                                style: TextStyle(
-                                  fontSize: 24.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          }
-
                           return SingleChildScrollView(
                             padding: EdgeInsets.symmetric(horizontal: 16),
                             child: Column(
@@ -119,7 +108,21 @@ class _HomeState extends State<Home> {
                                     ],
                                   ),
                                 ),
-                                20.verticalSpace,
+                                if (docs.isEmpty)
+                                  SizedBox(
+                                    height: 0.7.sh,
+                                    child: Center(
+                                      child: Text(
+                                        'No tasks yet',
+                                        style: TextStyle(
+                                          fontSize: 24.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  20.verticalSpace,
                                 // 🟢 To Do tasks
                                 if (unCompletedTasks.isNotEmpty)
                                   ClipRRect(
@@ -152,34 +155,34 @@ class _HomeState extends State<Home> {
                                 // 🟣 Completed tasks
                                 if (completedTasks.isNotEmpty) ...[
                                   if (completedTasks.length != docs.length)
-                                    Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _isCompletedTasksShown =
-                                                  !_isCompletedTasksShown;
-                                            });
-                                          },
-                                          child: Icon(
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _isCompletedTasksShown =
+                                              !_isCompletedTasksShown;
+                                        });
+                                      },
+                                      child: Row(
+                                        children: [
+                                          Icon(
                                             _isCompletedTasksShown
                                                 ? Icons.keyboard_arrow_down
                                                 : Icons.keyboard_arrow_right,
                                           ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 16.0,
-                                          ),
-                                          child: Text(
-                                            'Completed',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18.sp,
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 16.0,
+                                            ),
+                                            child: Text(
+                                              'Completed',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18.sp,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   if (_isCompletedTasksShown)
                                     Column(
@@ -231,23 +234,9 @@ class _HomeState extends State<Home> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: TextButton(
-              style: TextButton.styleFrom(backgroundColor: Color(0xFF4a3780)),
-              onPressed: () {
-                context.push('/addTask');
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    'Add New Task',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+            child: CustomButton(
+              text: 'Add New Task',
+              onTap: () => context.push('/addTask'),
             ),
           ),
         ],
@@ -258,7 +247,7 @@ class _HomeState extends State<Home> {
   Widget _buildTaskItem(QueryDocumentSnapshot todo, int index) {
     final isDoneNotifier = ValueNotifier<bool>(todo['isDone'] ?? false);
     final category = categories.firstWhere((category) {
-      return category.type == todo['category'];
+      return category.icon.codePoint == todo['category'];
     });
     return ValueListenableBuilder<bool>(
       valueListenable: isDoneNotifier,
