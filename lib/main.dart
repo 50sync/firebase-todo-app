@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:tasking/core/bloc/bloc/task_bloc.dart';
 import 'package:tasking/core/constants/routes.dart';
 import 'package:tasking/firebase_options.dart';
 
@@ -15,10 +18,13 @@ class Tasking extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      child: MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        routerConfig: router,
+    return BlocProvider(
+      create: (context) => TaskBloc(firestore: FirebaseFirestore.instance),
+      child: ScreenUtilInit(
+        child: MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          routerConfig: router,
+        ),
       ),
     );
   }
