@@ -16,7 +16,7 @@ class InsideTask extends StatelessWidget {
           Center(
             child: IconButton(
               onPressed: () {
-                todosCollection.doc(todo.id).delete();
+                tasksCollection.doc(todo.id).delete();
                 context.pop();
               },
               icon: Icon(Icons.delete, color: Colors.red, size: 60),

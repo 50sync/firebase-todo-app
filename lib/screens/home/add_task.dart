@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/date_time_patterns.dart';
 import 'package:intl/intl.dart';
 import 'package:tasking/core/constants/constants.dart';
 import 'package:tasking/core/models/category_model.dart';
@@ -39,9 +38,10 @@ class _AddTaskState extends State<AddTask> {
   String? _formattedDate;
   String? _formattedTime;
   TimeOfDay? _selectedTime;
+  final GlobalKey<FormState> _formState = GlobalKey<FormState>();
   final TextEditingController _taskTitleController = TextEditingController();
   void _addTask() {
-    todosCollection.add({
+    tasksCollection.add({
       'isDone': false,
       'title': _taskTitleController.text,
       'dueDate': _formattedDate,
@@ -123,7 +123,10 @@ class _AddTaskState extends State<AddTask> {
                       'Task Title',
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    _buildNewTaskTextField(_taskTitleController),
+                    Form(
+                      key: _formState,
+                      child: _buildNewTaskTextField(_taskTitleController),
+                    ),
                   ],
                 ),
                 Row(
@@ -282,10 +285,12 @@ class _AddTaskState extends State<AddTask> {
             child: TextButton(
               style: TextButton.styleFrom(backgroundColor: Color(0xFF4a3780)),
               onPressed: () {
-                if (selectedIndex != null) {
+                if (_formState.currentState!.validate() &&
+                    selectedIndex != null) {
                   _addTask();
                   context.pop();
-                } else {
+                }
+                if (selectedIndex == null) {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(SnackBar(content: Text('Category Required')));
@@ -310,14 +315,26 @@ class _AddTaskState extends State<AddTask> {
     );
   }
 
-  TextField _buildNewTaskTextField(TextEditingController controller) {
-    return TextField(
+  TextFormField _buildNewTaskTextField(TextEditingController controller) {
+    return TextFormField(
+      validator: (value) {
+        if (value!.isEmpty) {
+          return 'Required Fiedl';
+        }
+        return null;
+      },
       controller: controller,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
         ),
         focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
         ),
         filled: true,

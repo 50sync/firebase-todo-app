@@ -20,6 +20,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    log(fireAuthInstance.currentUser!.uid.toString());
     return Scaffold(
       backgroundColor: Color(0xFFf1f5f9),
       body: Column(
@@ -49,18 +50,20 @@ class _HomeState extends State<Home> {
                 Positioned.fill(
                   child: SafeArea(
                     child: StreamBuilder(
-                      stream: todosCollection.snapshots(),
+                      stream: tasksCollection.snapshots(),
+
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return Center(child: CircularProgressIndicator());
                         }
 
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        if (!snapshot.hasData) {
                           return Center(child: Text('No tasks yet'));
                         }
-
                         final docs = snapshot.data!.docs;
+
+                        log(docs.toString());
 
                         final tasksToDoList = docs
                             .where((doc) => doc['isDone'] == false)
@@ -104,45 +107,30 @@ class _HomeState extends State<Home> {
 
                               // 🟢 To Do tasks
                               if (tasksToDoList.isNotEmpty)
-                                AnimatedSwitcher(
-                                  duration: Duration(milliseconds: 400),
-                                  transitionBuilder: (child, animation) {
-                                    final offsetAnimation = Tween<Offset>(
-                                      begin: Offset(1.0, 0.0), // يبدأ من اليمين
-                                      end: Offset.zero,
-                                    ).animate(animation);
-
-                                    return SlideTransition(
-                                      position: offsetAnimation,
-                                      child: child,
-                                    );
-                                  },
-
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(15),
-                                    child: Column(
-                                      children: [
-                                        ...List.generate(
-                                          tasksToDoList.length,
-                                          (index) => Column(
-                                            children: [
-                                              _buildTaskItem(
-                                                tasksToDoList[index],
-                                                index,
-                                              ),
-                                              if (index !=
-                                                  tasksToDoList.length - 1)
-                                                Divider(
-                                                  height: 0,
-                                                  color: Colors.grey.withValues(
-                                                    alpha: 0.5,
-                                                  ),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Column(
+                                    children: [
+                                      ...List.generate(
+                                        tasksToDoList.length,
+                                        (index) => Column(
+                                          children: [
+                                            _buildTaskItem(
+                                              tasksToDoList[index],
+                                              index,
+                                            ),
+                                            if (index !=
+                                                tasksToDoList.length - 1)
+                                              Divider(
+                                                height: 0,
+                                                color: Colors.grey.withValues(
+                                                  alpha: 0.5,
                                                 ),
-                                            ],
-                                          ),
+                                              ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
 
@@ -160,41 +148,26 @@ class _HomeState extends State<Home> {
                                     ),
                                   ),
                                 ),
-                                AnimatedSwitcher(
-                                  duration: Duration(milliseconds: 400),
-                                  transitionBuilder: (child, animation) {
-                                    final offsetAnimation = Tween<Offset>(
-                                      begin: Offset(1.0, 0.0), // يبدأ من اليمين
-                                      end: Offset.zero,
-                                    ).animate(animation);
-
-                                    return SlideTransition(
-                                      position: offsetAnimation,
-                                      child: child,
-                                    );
-                                  },
-
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(15),
-                                    child: Column(
-                                      children: List.generate(
-                                        completedTasks.length,
-                                        (index) => Column(
-                                          children: [
-                                            _buildTaskItem(
-                                              completedTasks[index],
-                                              index,
-                                            ),
-                                            if (index !=
-                                                completedTasks.length - 1)
-                                              Divider(
-                                                height: 0,
-                                                color: Colors.grey.withValues(
-                                                  alpha: 0.5,
-                                                ),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Column(
+                                    children: List.generate(
+                                      completedTasks.length,
+                                      (index) => Column(
+                                        children: [
+                                          _buildTaskItem(
+                                            completedTasks[index],
+                                            index,
+                                          ),
+                                          if (index !=
+                                              completedTasks.length - 1)
+                                            Divider(
+                                              height: 0,
+                                              color: Colors.grey.withValues(
+                                                alpha: 0.5,
                                               ),
-                                          ],
-                                        ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -246,6 +219,7 @@ class _HomeState extends State<Home> {
           context.push('/insideTask', extra: {'todo': todo});
         },
         child: ValueListenableBuilder<bool>(
+          key: UniqueKey(),
           valueListenable: isDoneNotifier,
           builder: (context, value, child) {
             return Container(
@@ -321,7 +295,7 @@ class _HomeState extends State<Home> {
                           isDoneNotifier.value = newValue;
 
                           Future.delayed(Duration(milliseconds: 400), () {
-                            todosCollection.doc(todo.id).update({
+                            tasksCollection.doc(todo.id).update({
                               'isDone': newValue,
                             });
                           });
