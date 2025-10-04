@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:tasking/core/bloc/bloc/task_bloc.dart';
 import 'package:tasking/core/constants/constants.dart';
+import 'package:tasking/core/widgets/decorated_app_bar.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -41,25 +42,7 @@ class _HomeState extends State<Home> {
           Expanded(
             child: Stack(
               children: [
-                Container(
-                  clipBehavior: Clip.none,
-                  width: double.infinity,
-                  height: 0.3.sh,
-                  decoration: BoxDecoration(color: Color(0xFF4a3780)),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Align(
-                        alignment: Alignment.bottomLeft,
-                        child: SvgPicture.asset('assets/ellipse1.svg'),
-                      ),
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: SvgPicture.asset('assets/ellipse2.svg'),
-                      ),
-                    ],
-                  ),
-                ),
+                DecoratedAppBar(height: 0.3.sh),
                 Positioned.fill(
                   child: SafeArea(
                     child: BlocConsumer<TaskBloc, TaskState>(
@@ -94,7 +77,15 @@ class _HomeState extends State<Home> {
                           final docs = state.docs;
 
                           if (docs.isEmpty) {
-                            return Center(child: Text('No tasks yet'));
+                            return Center(
+                              child: Text(
+                                'No tasks yet',
+                                style: TextStyle(
+                                  fontSize: 24.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
                           }
 
                           return SingleChildScrollView(
@@ -172,12 +163,10 @@ class _HomeState extends State<Home> {
                                           },
                                           child: Icon(
                                             _isCompletedTasksShown
-                                                ? Icons.arrow_circle_down
-                                                : Icons
-                                                      .arrow_circle_right_outlined,
+                                                ? Icons.keyboard_arrow_down
+                                                : Icons.keyboard_arrow_right,
                                           ),
                                         ),
-                                        5.horizontalSpace,
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 16.0,
@@ -268,7 +257,9 @@ class _HomeState extends State<Home> {
 
   Widget _buildTaskItem(QueryDocumentSnapshot todo, int index) {
     final isDoneNotifier = ValueNotifier<bool>(todo['isDone'] ?? false);
-
+    final category = categories.firstWhere((category) {
+      return category.type == todo['category'];
+    });
     return ValueListenableBuilder<bool>(
       valueListenable: isDoneNotifier,
       builder: (context, value, child) {
@@ -277,7 +268,7 @@ class _HomeState extends State<Home> {
           color: Colors.white,
           child: InkWell(
             onTap: () {
-              context.push('/insideTask', extra: {'todo': todo});
+              context.push('/addTask', extra: {'todo': todo});
             },
             child: Container(
               color: Colors.transparent,
@@ -290,19 +281,14 @@ class _HomeState extends State<Home> {
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         decoration: BoxDecoration(
-                          color: Colors.cyan,
+                          color: category.color,
                           borderRadius: BorderRadius.circular(100),
                         ),
                         padding: const EdgeInsets.all(8),
                         child: Icon(
-                          switch (todo['category']) {
-                            'calendar' => Icons.calendar_month_outlined,
-                            'sun' => Icons.wb_sunny_outlined,
-                            'trophy' => Icons.emoji_events_outlined,
-                            _ => Icons.check,
-                          },
+                          category.icon,
                           size: 30,
-                          color: Colors.white,
+                          color: Color(0xFF4a3780),
                         ),
                       ),
                       5.horizontalSpace,
@@ -320,17 +306,33 @@ class _HomeState extends State<Home> {
                               color: value ? Colors.grey : Colors.black,
                             ),
                           ),
-                          if (todo['dueDate'] != null)
-                            Text(
-                              '${_formatDueDate(todo['dueDate'])} ${todo['dueTime'] ?? ''}',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey,
-                                decoration: value
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                              ),
-                            ),
+                          Row(
+                            spacing: 5,
+                            children: [
+                              if (todo['dueDate'] != null)
+                                Text(
+                                  _formatDueDate(todo['dueDate'])!,
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey,
+                                    decoration: value
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                ),
+                              if (todo['dueTime'] != null)
+                                Text(
+                                  todo['dueTime'],
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey,
+                                    decoration: value
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
@@ -366,10 +368,15 @@ class _HomeState extends State<Home> {
     );
   }
 
-  String _formatDueDate(String dueDate) {
+  String? _formatDueDate(String? dueDate) {
     try {
-      final date = DateTime.parse(dueDate);
-      return DateFormat('yyy-MM-d').format(date);
+      if (dueDate != null) {
+        final date = DateTime.parse(dueDate);
+
+        return DateFormat('yyy-MM-d').format(date);
+      } else {
+        return null;
+      }
     } catch (e) {
       return dueDate;
     }
