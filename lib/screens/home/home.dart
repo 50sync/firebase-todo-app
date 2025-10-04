@@ -239,97 +239,102 @@ class _HomeState extends State<Home> {
   Widget _buildTaskItem(QueryDocumentSnapshot todo, int index) {
     final isDoneNotifier = ValueNotifier<bool>(todo['isDone'] ?? false);
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: isDoneNotifier,
-      builder: (context, value, child) {
-        return Container(
-          color: Colors.white,
-          padding: EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () {
+          context.push('/insideTask', extra: {'todo': todo});
+        },
+        child: ValueListenableBuilder<bool>(
+          valueListenable: isDoneNotifier,
+          builder: (context, value, child) {
+            return Container(
+              color: Colors.transparent,
+              padding: EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    key: ValueKey(isDoneNotifier.value),
-                    decoration: BoxDecoration(
-                      color: value ? Colors.green : Colors.cyan,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    padding: EdgeInsets.all(8),
-                    child: Icon(
-                      switch (todo['category']) {
-                        'calendar' => Icons.calendar_month_outlined,
-                        'sun' => Icons.wb_sunny_outlined,
-                        'trophy' => Icons.emoji_events_outlined,
-                        _ => Icons.check,
-                      },
-                      size: 30,
-                      color: Colors.white,
-                    ),
-                  ),
-                  5.horizontalSpace,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        todo['title'] ?? '',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          decoration: value
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                          color: value ? Colors.grey : Colors.black,
+                      Container(
+                        key: ValueKey(isDoneNotifier.value),
+                        decoration: BoxDecoration(
+                          color: value ? Colors.green : Colors.cyan,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          switch (todo['category']) {
+                            'calendar' => Icons.calendar_month_outlined,
+                            'sun' => Icons.wb_sunny_outlined,
+                            'trophy' => Icons.emoji_events_outlined,
+                            _ => Icons.check,
+                          },
+                          size: 30,
+                          color: Colors.white,
                         ),
                       ),
-                      Row(
+                      5.horizontalSpace,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (todo['dueDate'] != null)
-                            Text(
-                              _formatDueDate(todo['dueDate']),
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey,
-                              ),
+                          Text(
+                            todo['title'] ?? '',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w500,
+                              decoration: value
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              decorationColor: Colors.grey,
+
+                              color: value ? Colors.grey : Colors.black,
                             ),
-                          5.horizontalSpace,
-                          if (todo['dueTime'] != null)
-                            Text(
-                              todo['dueTime'],
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey,
-                              ),
-                            ),
+                          ),
+                          Row(
+                            children: [
+                              if (todo['dueDate'] != null)
+                                Text(
+                                  '${_formatDueDate(todo['dueDate'])} ${todo['dueTime']}',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey,
+                                    decoration: value
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                    decorationColor: Colors.grey,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
                   ),
+                  Transform.scale(
+                    scale: 1.5,
+                    child: Checkbox(
+                      side: BorderSide(color: Colors.grey),
+                      value: value,
+                      onChanged: (newValue) {
+                        if (newValue != null) {
+                          isDoneNotifier.value = newValue;
+
+                          Future.delayed(Duration(milliseconds: 400), () {
+                            todosCollection.doc(todo.id).update({
+                              'isDone': newValue,
+                            });
+                          });
+                        }
+                      },
+                    ),
+                  ),
                 ],
               ),
-              Transform.scale(
-                scale: 1.5,
-                child: Checkbox(
-                  side: BorderSide(color: Colors.grey),
-                  value: value,
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      isDoneNotifier.value = newValue;
-
-                      Future.delayed(Duration(milliseconds: 400), () {
-                        todosCollection.doc(todo.id).update({
-                          'isDone': newValue,
-                        });
-                      });
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 

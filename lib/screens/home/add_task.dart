@@ -284,6 +284,7 @@ class _AddTaskState extends State<AddTask> {
               onPressed: () {
                 if (selectedIndex != null) {
                   _addTask();
+                  context.pop();
                 } else {
                   ScaffoldMessenger.of(
                     context,
