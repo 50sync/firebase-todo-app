@@ -1,8 +1,12 @@
+import 'dart:developer';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tasking/core/constants/constants.dart';
+import 'package:tasking/core/widgets/custom_button.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -19,38 +23,64 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                spacing: 5,
-                children: [
-                  _buildAuthTextField(
-                    _emailController,
-                    'E-Mail',
-                    Icon(Icons.mail_outline),
+      backgroundColor: Color(0xFF4a3780),
+      body: Stack(
+        children: [
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: SvgPicture.asset('assets/ellipse1.svg'),
+          ),
+          Align(
+            alignment: Alignment.topRight,
+            child: SvgPicture.asset('assets/ellipse2.svg'),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    spacing: 10,
+                    children: [
+                      _buildAuthTextField(
+                        _emailController,
+                        'E-Mail',
+                        Icon(Icons.mail_outline),
+                      ),
+                      ValueListenableBuilder(
+                        valueListenable: _errorText,
+                        builder: (context, value, child) {
+                          return _buildAuthTextField(
+                            _passwordController,
+                            'Password',
+                            Icon(Icons.lock_outline),
+                            errorText: value,
+                          );
+                        },
+                      ),
+                      CustomButton(
+                        text: 'Login',
+                        borderRadius: 5,
+                        color: Colors.deepPurpleAccent,
+                        onTap: () async {
+                          if (_formKey.currentState!.validate()) {
+                            _errorText.value = null;
+                            UserCredential response = await _login();
+                            if (response.user != null && context.mounted) {
+                              context.go('/home');
+                            }
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  ValueListenableBuilder(
-                    valueListenable: _errorText,
-                    builder: (context, value, child) {
-                      return _buildAuthTextField(
-                        _passwordController,
-                        'Password',
-                        Icon(Icons.lock_outline),
-                        errorText: value,
-                      );
-                    },
-                  ),
-                  _buildLoginButton(),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -69,10 +99,13 @@ class _LoginState extends State<Login> {
         return null;
       },
       controller: controller,
+      style: TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey),
+
         prefixIcon: icon,
+        prefixIconColor: Colors.white,
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey),
         ),
@@ -86,36 +119,7 @@ class _LoginState extends State<Login> {
           borderSide: BorderSide(color: Colors.red),
         ),
         errorText: errorText,
-      ),
-    );
-  }
-
-  Widget _buildLoginButton() {
-    return TextButton(
-      onPressed: () async {
-        if (_formKey.currentState!.validate()) {
-          _errorText.value = null;
-          UserCredential response = await _login();
-          if (response.user != null && mounted) {
-            context.push('/home');
-          }
-        }
-      },
-      style: TextButton.styleFrom(
-        backgroundColor: Color(0xFF4a3780),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadiusGeometry.circular(5),
-        ),
-      ),
-      child: Center(
-        child: Text(
-          'Login',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        errorStyle: TextStyle(color: const Color.fromARGB(255, 255, 17, 0)),
       ),
     );
   }
@@ -129,7 +133,16 @@ class _LoginState extends State<Login> {
           );
       return response;
     } on FirebaseAuthException catch (ex) {
-      _errorText.value = ex.message!;
+      log(ex.code);
+      switch (ex.code) {
+        case 'invalid-credential':
+          _errorText.value = 'Wrong Email or Password';
+          break;
+        default:
+          _errorText.value = ex.message;
+          break;
+      }
+
       throw ex.message!;
     }
   }

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -62,9 +63,9 @@ class _AddTaskState extends State<AddTask> {
     super.initState();
   }
 
-  void _addTask() {
+  Future<void> _addTask() async {
     if (widget.todo != null) {
-      tasksCollection.doc(widget.todo?.id).update({
+      await tasksCollection.doc(widget.todo?.id).update({
         'title': _taskTitleController.text.trim(),
         'dueDate': _formattedDate?.trim(),
         'dueTime': _formattedTime?.trim(),
@@ -72,7 +73,7 @@ class _AddTaskState extends State<AddTask> {
         'notes': _noteTitleController.text.trim(),
       });
     } else {
-      tasksCollection.add({
+      await tasksCollection.add({
         'isDone': false,
         'title': _taskTitleController.text.trim(),
         'dueDate': _formattedDate?.trim(),
@@ -177,6 +178,11 @@ class _AddTaskState extends State<AddTask> {
                                     side: const BorderSide(color: Colors.grey),
                                     value: isDone ?? false,
                                     onChanged: (value) {
+                                      if (value == true) {
+                                        AudioPlayer().play(
+                                          AssetSource('check.mp3'),
+                                        );
+                                      }
                                       tasksCollection
                                           .doc(widget.todo?.id)
                                           .update({'isDone': value});
@@ -405,13 +411,15 @@ class _AddTaskState extends State<AddTask> {
             padding: const EdgeInsets.all(8.0),
             child: CustomButton(
               text: 'Save',
-              onTap: () {
+              onTap: () async {
                 if (_formKey.currentState!.validate()) {
-                  _addTask();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Task saved successfully!')),
-                  );
-                  context.pop();
+                  await _addTask();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Task saved successfully!')),
+                    );
+                    context.pop();
+                  }
                 }
               },
             ),
@@ -436,6 +444,7 @@ class _AddTaskState extends State<AddTask> {
               Expanded(
                 child: GridView.builder(
                   shrinkWrap: true,
+                  padding: EdgeInsets.zero,
                   itemCount: categories.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
